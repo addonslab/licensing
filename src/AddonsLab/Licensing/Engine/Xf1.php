@@ -74,6 +74,41 @@ abstract class Xf1 implements AbstractEngine
         return '<a class="concealed" href="https://customers.addonslab.com/marketplace.php" target="_blank">' . $addonName . '</a>';
     }
 
+    /**
+     * @param $licenseKey
+     * @param bool $logFailure
+     * @return \AddonsLab\Licensing\LicenseData
+     * @throws DataIntegrityException
+     * @throws LicenseFailedException Does full re-validation and throws exceptions in case of failure
+     */
+    public static function licenseLocalReValidation($licenseKey, $logFailure = true)
+    {
+        $checker = static::getLicenseChecker();
+
+        $licenseData = $checker->getLocalLicenseData($licenseKey);
+
+        if ($licenseData === false) {
+            // should not happen
+            throw new LicenseNotFoundException();
+        }
+
+        if (!$licenseData->checkDataIntegrity()) {
+            // prevent usage, as license integrity could not be checked
+            throw new DataIntegrityException();
+        }
+
+        if ($licenseData->isValid() === false && $logFailure === true) {
+            $licenseData->increaseFailCount();
+        }
+
+        $checker->setLicenseData($licenseKey, $licenseData);
+
+        if ($licenseData->isFailed()) {
+            throw new LicenseFailedException();
+        }
+
+        return $licenseData;
+    }
 
     /**
      * @param $licenseKey
@@ -86,12 +121,7 @@ abstract class Xf1 implements AbstractEngine
     {
         $checker = static::getLicenseChecker();
 
-        $licenseData = $checker->getLocalLicenseData($licenseKey);
-        
-        if($licenseData===false) {
-            // should not happen
-            throw new LicenseNotFoundException();
-        }
+        $licenseData = $checker->forceLicenseUpdate($licenseKey);
 
         if (!$licenseData->checkDataIntegrity()) {
             // prevent usage, as license integrity could not be checked

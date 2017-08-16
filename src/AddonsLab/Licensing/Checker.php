@@ -62,7 +62,7 @@ class Checker
             // no local data ever existed, create a new one
             $licenseData = new LicenseData();
         }
-
+        
         $queryData = array(
             'license_key' => $licenseKey,
             'server_ip' => $_SERVER['SERVER_ADDR'],
