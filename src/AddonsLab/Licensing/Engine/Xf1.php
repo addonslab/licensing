@@ -5,6 +5,7 @@ namespace AddonsLab\Licensing\Engine;
 use AddonsLab\Licensing\Checker;
 use AddonsLab\Licensing\Exception\DataIntegrityException;
 use AddonsLab\Licensing\Exception\LicenseFailedException;
+use AddonsLab\Licensing\Exception\LicenseNotFoundException;
 use AddonsLab\Licensing\LicenseData;
 use AddonsLab\Licensing\StorageDriver\AbstractStorageDriver;
 use AddonsLab\Licensing\StorageDriver\Database;
@@ -18,7 +19,7 @@ use AddonsLab\Licensing\StorageDriver\File;
 abstract class Xf1 implements AbstractEngine
 {
     public static function getEndpoint() {
-        throw new \Exception("getEndpoint should be overridden by child classes.");
+        return '';
     }
 
     /**
@@ -85,7 +86,12 @@ abstract class Xf1 implements AbstractEngine
     {
         $checker = static::getLicenseChecker();
 
-        $licenseData = $checker->forceLicenseUpdate($licenseKey);
+        $licenseData = $checker->getLocalLicenseData($licenseKey);
+        
+        if($licenseData===false) {
+            // should not happen
+            throw new LicenseNotFoundException();
+        }
 
         if (!$licenseData->checkDataIntegrity()) {
             // prevent usage, as license integrity could not be checked
