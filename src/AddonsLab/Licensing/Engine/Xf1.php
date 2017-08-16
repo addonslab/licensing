@@ -15,8 +15,12 @@ use AddonsLab\Licensing\StorageDriver\File;
  * @package AddonsLab\Licensing\Engine
  * XenForo 1.x-related methods for license validation and rending license option
  */
-class Xf1 implements AbstractEngine
+abstract class Xf1 implements AbstractEngine
 {
+    public static function getEndpoint() {
+        throw new \Exception("getEndpoint should be overridden by child classes.");
+    }
+
     /**
      * @return AbstractStorageDriver[]
      * Default drivers working on XenForo 1.x
@@ -25,7 +29,7 @@ class Xf1 implements AbstractEngine
     {
         $file = (new File())
             ->setCacheDirectory(\XenForo_Helper_File::getExternalDataPath() . '/license')
-            ->setCacheDirectoryUrl(\XenForo_Application::getOptions()->get('boardUrl').'/data/license');
+            ->setCacheDirectoryUrl(\XenForo_Application::getOptions()->get('boardUrl') . '/data/license');
         $db = (new Database())->setDb(\XenForo_Application::getDb());
 
         return [
@@ -37,14 +41,18 @@ class Xf1 implements AbstractEngine
     public static function getLicenseChecker()
     {
         // check for existing license
-        return new Checker(
-            self::getDrivers()
+        $checker = new Checker(
+            static::getDrivers()
         );
+        
+        $checker->setEndpoint(static::getEndpoint());
+
+        return $checker;
     }
 
     public static function installDrivers()
     {
-        foreach (self::getDrivers() AS $driver) {
+        foreach (static::getDrivers() AS $driver) {
             $driver->install();
         }
     }
@@ -75,7 +83,7 @@ class Xf1 implements AbstractEngine
      */
     public static function licenseReValidation($licenseKey, $logFailure = true)
     {
-        $checker = self::getLicenseChecker();
+        $checker = static::getLicenseChecker();
 
         $licenseData = $checker->forceLicenseUpdate($licenseKey);
 
@@ -126,8 +134,8 @@ Thank you!',
             $licenseMessage,
             $addonData['url']
         ));
-        
-	    $mailObj->clearSubject();
+
+        $mailObj->clearSubject();
         $mailObj->setSubject(sprintf('Add-on License Expired at %s', \XenForo_Application::getOptions()->get('boardTitle')));
         $mailObj->setBodyHtml('');
 
@@ -149,14 +157,17 @@ Thank you!',
         if ($preparedOption['option_value']) {
             // force check of license and put the information here
             try {
-                $licenseData = Xf1::licenseReValidation($preparedOption['option_value'], false);
+                $licenseData = static::licenseReValidation(
+                    $preparedOption['option_value'],
+                    false
+                );
                 $preparedOption['explain'] = $licenseData->getFullStatusMessage();
             } catch (\Exception $exception) {
                 // set the description field to the error message we got
                 $preparedOption['explain'] = $exception->getMessage();
             }
         }
-        return self::_render('option_list_option_textbox', $view, $fieldPrefix, $preparedOption, $canEdit);
+        return static::_render('option_list_option_textbox', $view, $fieldPrefix, $preparedOption, $canEdit);
     }
 
     /**

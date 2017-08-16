@@ -6,8 +6,8 @@ use AddonsLab\Licensing\StorageDriver\AbstractStorageDriver;
 
 class Checker
 {
-    protected $endpoint = 'https://dev.addonslab.com/license-check.php';
-
+    protected $endpoint;
+    
     /**
      * @var AbstractStorageDriver[]
      */
@@ -131,5 +131,23 @@ class Checker
         }
 
         return false;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEndpoint()
+    {
+        return $this->endpoint;
+    }
+
+    /**
+     * @param string $endpoint
+     */
+    public function setEndpoint($endpoint)
+    {
+        $this->endpoint = $endpoint;
+        
+        return $this;
     }
 }
