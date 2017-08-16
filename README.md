@@ -1,0 +1,1 @@
+Licensing module for AddonsLab products
