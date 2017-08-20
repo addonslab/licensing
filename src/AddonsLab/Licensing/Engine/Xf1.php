@@ -99,14 +99,12 @@ abstract class Xf1 implements AbstractEngine
 
         if ($licenseData->isValid() === false && $logFailure === true) {
             $licenseData->increaseFailCount();
+	        $checker->setLicenseData($licenseKey, $licenseData);
+	        if ($licenseData->isFailed()) {
+		        throw new LicenseFailedException();
+	        }
         }
-
-        $checker->setLicenseData($licenseKey, $licenseData);
-
-        if ($licenseData->isFailed()) {
-            throw new LicenseFailedException();
-        }
-
+	    
         return $licenseData;
     }
 
@@ -156,7 +154,7 @@ abstract class Xf1 implements AbstractEngine
             \XenForo_Application::getOptions()->get('contactEmailAddress')
         );
 
-        $mailObj->setBodyText(sprintf('We have detected, that your license information at %s for add-on ID "%s" is invalid. 
+        $mailObj->setBodyText($bodyText=sprintf('We have detected, that your license information at %s for add-on ID "%s" is invalid. 
 
 Here is the reason why the license was considered invalid: %s
 
@@ -173,7 +171,7 @@ Thank you!',
 
         $mailObj->clearSubject();
         $mailObj->setSubject(sprintf('Add-on License Expired at %s', \XenForo_Application::getOptions()->get('boardTitle')));
-        $mailObj->setBodyHtml('');
+        $mailObj->setBodyHtml(nl2br($bodyText));
 
         $mail->sendMail($mailObj);
     }

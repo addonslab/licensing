@@ -36,8 +36,7 @@ class LicenseData
 	{
 		return
 			$this->last_server_response
-			&& !empty($this->last_server_response['IsValid'])
-			&& time() - $this->last_server_response['LicenseCheckDate'] < 86400; // allow one day grace period
+			&& !empty($this->last_server_response['IsValid']);
 	}
 	
 	public function hasBranding()
