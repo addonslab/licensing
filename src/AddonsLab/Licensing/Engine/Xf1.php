@@ -6,6 +6,7 @@ use AddonsLab\Licensing\Checker;
 use AddonsLab\Licensing\Exception\DataIntegrityException;
 use AddonsLab\Licensing\Exception\LicenseFailedException;
 use AddonsLab\Licensing\Exception\LicenseNotFoundException;
+use AddonsLab\Licensing\Exception\TrialExpiredException;
 use AddonsLab\Licensing\LicenseData;
 use AddonsLab\Licensing\StorageDriver\AbstractStorageDriver;
 use AddonsLab\Licensing\StorageDriver\Database;
@@ -62,6 +63,13 @@ abstract class Xf1 implements AbstractEngine
     {
         return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': invalid license detected.</a>';
     }
+    
+    public static function getExpiredTrialMessage($addonName)
+    {
+        return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': your trial version is expired.</a>';
+    }
+    
+    
 
     public static function getLicenseEmptyMessage($addonName)
     {
@@ -95,6 +103,10 @@ abstract class Xf1 implements AbstractEngine
         if (!$licenseData->checkDataIntegrity()) {
             // prevent usage, as license integrity could not be checked
             throw new DataIntegrityException();
+        }
+
+        if($licenseData->isExpiredTrial()) {
+            throw  new TrialExpiredException();
         }
 
         if ($licenseData->isValid() === false && $logFailure === true) {
