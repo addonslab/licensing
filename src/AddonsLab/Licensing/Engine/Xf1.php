@@ -155,7 +155,7 @@ abstract class Xf1 implements AbstractEngine
     {
         /** @var \XenForo_DataWriter_AddOn $dw */
         $dw = \XenForo_DataWriter::create('XenForo_DataWriter_AddOn');
-        $dw->setExistingData('alcef');
+        $dw->setExistingData($addonId);
         $dw->set('active', 0);
         $dw->save();
 

@@ -65,7 +65,7 @@ class Checker
         
         $queryData = array(
             'license_key' => $licenseKey,
-            'server_ip' => $_SERVER['SERVER_ADDR'],
+            'server_ip' => isset($_SERVER['SERVER_ADDR'])? $_SERVER['SERVER_ADDR']:'127.0.0.1',
             'board_host' => parse_url(\XenForo_Application::getOptions()->get('boardUrl'), PHP_URL_HOST),
             'ping_url'=>$this->getLicensePingUrl($licenseKey)
         );
