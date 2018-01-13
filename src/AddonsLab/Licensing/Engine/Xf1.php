@@ -2,11 +2,6 @@
 
 namespace AddonsLab\Licensing\Engine;
 
-use AddonsLab\Licensing\Checker;
-use AddonsLab\Licensing\Exception\DataIntegrityException;
-use AddonsLab\Licensing\Exception\LicenseFailedException;
-use AddonsLab\Licensing\Exception\LicenseNotFoundException;
-use AddonsLab\Licensing\Exception\TrialExpiredException;
 use AddonsLab\Licensing\LicenseData;
 use AddonsLab\Licensing\StorageDriver\AbstractStorageDriver;
 use AddonsLab\Licensing\StorageDriver\Database;
@@ -17,12 +12,8 @@ use AddonsLab\Licensing\StorageDriver\File;
  * @package AddonsLab\Licensing\Engine
  * XenForo 1.x-related methods for license validation and rending license option
  */
-abstract class Xf1 implements AbstractEngine
+abstract class Xf1 extends AbstractEngine
 {
-    public static function getEndpoint() {
-        return '';
-    }
-
     /**
      * @return AbstractStorageDriver[]
      * Default drivers working on XenForo 1.x
@@ -39,116 +30,42 @@ abstract class Xf1 implements AbstractEngine
             $db,
         ];
     }
-
+    
     public static function getLicenseChecker()
     {
-        // check for existing license
-        $checker = new Checker(
-            static::getDrivers()
-        );
-        
-        $checker->setEndpoint(static::getEndpoint());
+        $checker = parent::getLicenseChecker();
+
+        $checker->setRemoteChecker(function ($endpoint, $queryData, LicenseData $licenseData) {
+            $client = \XenForo_Helper_Http::getClient(
+                $endpoint . '?' . http_build_query($queryData)
+            );
+
+            $apiResponse = $client->request();
+
+            if ($apiResponse->getStatus() !== 200) {
+                // do not increase failed count so we don't disable the product because of our server moving or unavailable
+                $licenseData->setServerError($apiResponse->getStatus() . ' ' . $apiResponse->getMessage());
+                return false;
+            }
+
+            $jsonResponse = @json_decode($apiResponse->getBody());
+
+            if (!$jsonResponse) {
+                $licenseData->increaseFailCount();
+                $licenseData->setLastError('Failed to decode license data - ' . substr($apiResponse->getBody(), 0, 100) . '...');
+                return false;
+            }
+            
+            return $jsonResponse;
+        });
 
         return $checker;
     }
 
-    public static function installDrivers()
+
+    public static function getBoardDomain()
     {
-        foreach (static::getDrivers() AS $driver) {
-            $driver->install();
-        }
-    }
-
-    public static function getInvalidLicenseMessage($addonName)
-    {
-        return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': invalid license detected.</a>';
-    }
-    
-    public static function getExpiredTrialMessage($addonName)
-    {
-        return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': your trial version is expired.</a>';
-    }
-    
-    
-
-    public static function getLicenseEmptyMessage($addonName)
-    {
-        return '<a style="color: red" href="https://customers.addonslab.com/submitticket.php" target="_blank">' . $addonName
-            . ': please enter your license key in Admin Panel.</a>';
-    }
-
-    public static function getBrandingMessage($addonName)
-    {
-        return '<a class="concealed" href="https://customers.addonslab.com/marketplace.php" target="_blank">' . $addonName . '</a>';
-    }
-
-    /**
-     * @param $licenseKey
-     * @param bool $logFailure
-     * @return \AddonsLab\Licensing\LicenseData
-     * @throws DataIntegrityException
-     * @throws LicenseFailedException Does full re-validation and throws exceptions in case of failure
-     */
-    public static function licenseLocalReValidation($licenseKey, $logFailure = true)
-    {
-        $checker = static::getLicenseChecker();
-
-        $licenseData = $checker->getLocalLicenseData($licenseKey);
-
-        if ($licenseData === false) {
-            // should not happen
-            throw new LicenseNotFoundException();
-        }
-
-        if (!$licenseData->checkDataIntegrity()) {
-            // prevent usage, as license integrity could not be checked
-            throw new DataIntegrityException();
-        }
-
-        if($licenseData->isExpiredTrial()) {
-            throw  new TrialExpiredException();
-        }
-
-        if ($licenseData->isValid() === false && $logFailure === true) {
-            $licenseData->increaseFailCount();
-	        $checker->setLicenseData($licenseKey, $licenseData);
-	        if ($licenseData->isFailed()) {
-		        throw new LicenseFailedException();
-	        }
-        }
-	    
-        return $licenseData;
-    }
-
-    /**
-     * @param $licenseKey
-     * @param bool $logFailure
-     * @return \AddonsLab\Licensing\LicenseData
-     * @throws DataIntegrityException
-     * @throws LicenseFailedException Does full re-validation and throws exceptions in case of failure
-     */
-    public static function licenseReValidation($licenseKey, $logFailure = true)
-    {
-        $checker = static::getLicenseChecker();
-
-        $licenseData = $checker->forceLicenseUpdate($licenseKey);
-
-        if (!$licenseData->checkDataIntegrity()) {
-            // prevent usage, as license integrity could not be checked
-            throw new DataIntegrityException();
-        }
-
-        if ($licenseData->isValid() === false && $logFailure === true) {
-            $licenseData->increaseFailCount();
-        }
-
-        $checker->setLicenseData($licenseKey, $licenseData);
-
-        if ($licenseData->isFailed()) {
-            throw new LicenseFailedException();
-        }
-
-        return $licenseData;
+        return parse_url(\XenForo_Application::getOptions()->get('boardUrl'), PHP_URL_HOST);
     }
 
     public static function disableAddon($addonId, $licenseMessage)
@@ -166,7 +83,7 @@ abstract class Xf1 implements AbstractEngine
             \XenForo_Application::getOptions()->get('contactEmailAddress')
         );
 
-        $mailObj->setBodyText($bodyText=sprintf('We have detected, that your license information at %s for add-on ID "%s" is invalid. 
+        $mailObj->setBodyText($bodyText = sprintf('We have detected, that your license information at %s for add-on ID "%s" is invalid. 
 
 Here is the reason why the license was considered invalid: %s
 

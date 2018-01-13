@@ -7,6 +7,12 @@ use AddonsLab\Licensing\StorageDriver\AbstractStorageDriver;
 class Checker
 {
     protected $endpoint;
+    protected $board_host;
+    
+    /**
+     * @var \Closure
+     */
+    protected $remote_checker;
     
     /**
      * @var AbstractStorageDriver[]
@@ -66,33 +72,19 @@ class Checker
         $queryData = array(
             'license_key' => $licenseKey,
             'server_ip' => isset($_SERVER['SERVER_ADDR'])? $_SERVER['SERVER_ADDR']:'127.0.0.1',
-            'board_host' => parse_url(\XenForo_Application::getOptions()->get('boardUrl'), PHP_URL_HOST),
+            'board_host' => $this->getBoardHost(),
             'ping_url'=>$this->getLicensePingUrl($licenseKey)
         );
 
-        $client = \XenForo_Helper_Http::getClient(
-            $this->endpoint . '?' . http_build_query($queryData)
-        );
-
         try {
-            $apiResponse = $client->request();
-        } catch (\Exception $ex) {
-            $licenseData->setServerError($ex->getMessage());
-
-            return $licenseData;
-        }
-
-        if ($apiResponse->getStatus() !== 200) {
-            // do not increase failed count so we don't disable the product because of our server moving or unavailable
-            $licenseData->setServerError($apiResponse->getStatus() . ' ' . $apiResponse->getMessage());
-            return $licenseData;
-        }
-
-        $jsonResponse = @json_decode($apiResponse->getBody());
-
-        if (!$jsonResponse) {
-            $licenseData->increaseFailCount();
-            $licenseData->setLastError('Failed to decode license data - ' . substr($apiResponse->getBody(), 0, 100) . '...');
+            $jsonResponse = call_user_func(
+                $this->remote_checker, 
+                $this->endpoint . '?' . http_build_query($queryData),
+                $queryData,
+                $licenseData
+            );
+        } catch (\Exception $exception) {
+            $licenseData->setServerError($exception->getMessage());
             return $licenseData;
         }
 
@@ -149,5 +141,25 @@ class Checker
         $this->endpoint = $endpoint;
         
         return $this;
+    }
+
+    public function getBoardHost()
+    {
+        return $this->board_host;
+    }
+
+    public function setBoardHost($board_host)
+    {
+        $this->board_host = $board_host;
+    }
+
+    public function getRemoteChecker()
+    {
+        return $this->remote_checker;
+    }
+
+    public function setRemoteChecker($remote_checker)
+    {
+        $this->remote_checker = $remote_checker;
     }
 }

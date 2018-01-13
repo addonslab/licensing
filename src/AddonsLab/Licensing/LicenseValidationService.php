@@ -17,6 +17,20 @@ class LicenseValidationService
     {
         $this->validator_class = $validator_class;
     }
+    
+    public function getLicenseChecker()
+    {
+        // check for existing license
+        $checker = new Checker(
+            $this->_callValidatorFunction('getDrivers')
+        );
+
+        $checker->setEndpoint(
+            $this->_callValidatorFunction('getEndpoint')
+        );
+
+        return $checker;
+    }
 
     /**
      * @param $licenseKey
@@ -27,7 +41,7 @@ class LicenseValidationService
      */
     public function licenseReValidation($licenseKey, $logFailure = true)
     {
-        return call_user_func(array($this->validator_class, 'licenseReValidation'), $licenseKey, $logFailure);
+        return $this->_callValidatorFunction('licenseReValidation', array($licenseKey, $logFailure));
     }
 
     /**
@@ -39,11 +53,36 @@ class LicenseValidationService
      */
     public function licenseLocalReValidation($licenseKey, $logFailure = true)
     {
-        return call_user_func(array($this->validator_class, 'licenseLocalReValidation'), $licenseKey, $licenseKey);
+        return $this->_callValidatorFunction('licenseLocalReValidation', array($licenseKey, $logFailure));
     }
     
     public function disableAddon($addonId, $licenseMessage)
     {
-        return call_user_func(array($this->validator_class, 'disableAddon'), $addonId, $licenseMessage);
+        return $this->_callValidatorFunction('disableAddon', array($addonId, $licenseMessage));
+    }
+
+    public function getInvalidLicenseMessage($addonName)
+    {
+        return $this->_callValidatorFunction('getInvalidLicenseMessage', array($addonName));
+    }
+
+    public function getExpiredTrialMessage($addonName)
+    {
+        return $this->_callValidatorFunction('getExpiredTrialMessage', array($addonName));
+    }
+
+    public function getLicenseEmptyMessage($addonName)
+    {
+        return $this->_callValidatorFunction('getLicenseEmptyMessage', array($addonName));
+    }
+
+    public function getBrandingMessage($addonName)
+    {
+        return $this->_callValidatorFunction('getBrandingMessage', array($addonName));
+    }
+    
+    protected function _callValidatorFunction($name, array $arguments=array())
+    {
+        return call_user_func_array(array($this->validator_class, $name), $arguments);
     }
 }
