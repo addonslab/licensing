@@ -43,10 +43,14 @@ class Database extends AbstractStorageDriver
 
     protected function _getCachedData($cacheId)
     {
-        $cachedData = $this->db->fetchRow('
-            SELECT license_data FROM ' . $this->table . ' 
-            WHERE license_key=\'' . addslashes($cacheId) . '\'
-        ');
+        try {
+            $cachedData = $this->db->fetchRow('
+                SELECT license_data FROM ' . $this->table . ' 
+                WHERE license_key=\'' . addslashes($cacheId) . '\'
+            ');
+        } catch (\Exception $exception) {
+            return false;
+        }
 
         if (!$cachedData) {
             return false;
@@ -61,11 +65,16 @@ class Database extends AbstractStorageDriver
     {
         $encoder = new Encoder();
         $content = $encoder->encode($data);
+        try {
+            $this->db->query('
+                REPLACE INTO ' . $this->table . ' (license_key, license_data)
+                VALUES (\'' . addslashes($licenseKey) . '\', \'' . addslashes($content) . '\')
+            ');
+        } catch (\Exception $exception) {
+            // ignore DB exceptions in licensing system
+            return;
+        }
 
-        $this->db->query('
-            REPLACE INTO ' . $this->table . ' (license_key, license_data)
-            VALUES (\'' . addslashes($licenseKey) . '\', \'' . addslashes($content) . '\')
-        ');
     }
 
     public function setTable($table)
