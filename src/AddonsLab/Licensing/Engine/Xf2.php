@@ -80,7 +80,7 @@ abstract class Xf2 extends AbstractEngine
 
         $file = (new File())
             ->setCacheDirectory($dataDir . '/license')
-            ->setCacheDirectoryUrl(\XF::app()->applyExternalDataUrl('license'));
+            ->setCacheDirectoryUrl(\XF::app()->applyExternalDataUrl('license', true));
         $db = (new Database())->setDb(\XF::app()->db());
         $db->setTable('xf_al_license');
 
