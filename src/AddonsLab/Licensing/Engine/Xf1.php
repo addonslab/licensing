@@ -30,14 +30,15 @@ abstract class Xf1 extends AbstractEngine
             $db,
         ];
     }
-    
+
     public static function getLicenseChecker()
     {
         $checker = parent::getLicenseChecker();
 
         $checker->setRemoteChecker(function ($endpoint, $queryData, LicenseData $licenseData) {
             $client = \XenForo_Helper_Http::getClient(
-                $endpoint . '?' . http_build_query($queryData)
+                $endpoint . '?' . http_build_query($queryData),
+                ['timeout' => 2]
             );
 
             $apiResponse = $client->request();
@@ -55,7 +56,7 @@ abstract class Xf1 extends AbstractEngine
                 $licenseData->setLastError('Failed to decode license data - ' . substr($apiResponse->getBody(), 0, 100) . '...');
                 return false;
             }
-            
+
             return $jsonResponse;
         });
 

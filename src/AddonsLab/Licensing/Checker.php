@@ -111,6 +111,10 @@ class Checker
 
     public function getLocalLicenseData($licenseKey)
     {
+        if(!$licenseKey) {
+            return false;
+        }
+        
         /** @var AbstractStorageDriver $storageDriver */
         foreach ($this->storageDrivers AS $storageDriver) {
             $licenseData = $storageDriver->getLocalData($licenseKey);
