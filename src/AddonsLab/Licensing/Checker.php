@@ -77,9 +77,10 @@ class Checker
         );
 
         try {
+            $licenseCheckString = $this->endpoint . '?' . http_build_query($queryData);
             $jsonResponse = call_user_func(
-                $this->remote_checker, 
-                $this->endpoint . '?' . http_build_query($queryData),
+                $this->remote_checker,
+                $licenseCheckString,
                 $queryData,
                 $licenseData
             );

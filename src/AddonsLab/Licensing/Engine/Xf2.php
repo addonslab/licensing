@@ -32,11 +32,15 @@ abstract class Xf2 extends AbstractEngine
 
         $checker->setRemoteChecker(function ($endpoint, $queryData, LicenseData $licenseData) {
             $client = \XF::app()->http()->client();
-            $request = $client->createRequest(
-                'GET',
-                $endpoint . '?' . http_build_query($queryData)
-            );
-            $response = $client->send($request);
+            if(method_exists($client, 'createRequest')) {
+                $request = $client->createRequest(
+                    'GET',
+                    $endpoint . '?' . http_build_query($queryData)
+                );
+                $response = $client->send($request);
+            } else {
+                $response = $client->get($endpoint . '?' . http_build_query($queryData));
+            }
             $result = $response->getBody()->getContents();
             $status_code = $response->getStatusCode();
 
@@ -153,7 +157,7 @@ Thank you!', \XF::app()->options()['boardTitle'],
         }
 
         $templater = \XF::app()->templater();
-        
+
         $formatParams=$option->getFormatParams();
 
         return $templater->formTextBoxRow(array(
