@@ -34,7 +34,7 @@ class Database extends AbstractStorageDriver
     {
         $this->db->query('
             CREATE TABLE IF NOT EXISTS `' . $this->table . '` (
-              `license_key` VARCHAR (255) NOT NULL,
+              `license_key` VARCHAR (100) NOT NULL,
               `license_data`	BLOB NOT NULL,
 			  PRIMARY KEY (license_key)
             ) ENGINE = InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;
