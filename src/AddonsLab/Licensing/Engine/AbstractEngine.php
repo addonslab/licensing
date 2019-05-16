@@ -22,17 +22,17 @@ abstract class AbstractEngine implements AbstractEngineInterface
     public static function getEndpoint() {
         return '';
     }
-    
+
     public static function getLicenseChecker()
     {
         // check for existing license
         $checker = new Checker(
             static::getDrivers()
         );
-        
+
         $checker->setEndpoint(static::getEndpoint());
         $checker->setBoardHost(static::getBoardDomain());
-        
+
         return $checker;
     }
 
@@ -47,7 +47,7 @@ abstract class AbstractEngine implements AbstractEngineInterface
     {
         return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': invalid license detected.</a>';
     }
-    
+
     public static function getExpiredTrialMessage($addonName)
     {
         return '<a style="color: red" href="https://customers.addonslab.com/" target="_blank">' . $addonName . ': your trial version is expired.</a>';
@@ -98,7 +98,7 @@ abstract class AbstractEngine implements AbstractEngineInterface
 		        throw new LicenseFailedException();
 	        }
         }
-	    
+
         return $licenseData;
     }
 
@@ -127,7 +127,7 @@ abstract class AbstractEngine implements AbstractEngineInterface
         $checker->setLicenseData($licenseKey, $licenseData);
 
         if ($licenseData->isFailed()) {
-            throw new LicenseFailedException();
+            throw new LicenseFailedException($licenseData->getFullStatusMessage());
         }
 
         return $licenseData;
